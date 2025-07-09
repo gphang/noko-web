@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; }
+        form { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { display: block; margin-bottom: 1rem; padding: 0.5rem; width: 200px; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 0.5rem; border: none; background-color: #007bff; color: white; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #token-display { margin-top: 1rem; word-break: break-all; background: #eee; padding: 1rem; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <form id="loginForm">
+        <h2>Login</h2>
+        <input type="text" id="username" name="username" placeholder="Username (e.g., test@example.com)" required>
+        <input type="password" id="password" name="password" placeholder="Password (e.g., test)" required>
+        <button type="submit">Login</button>
+        <div id="token-display"></div>
+    </form>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const searchParams = new URLSearchParams();
+
+            for (const pair of formData) {
+                searchParams.append(pair[0], pair[1]);
+            }
+
+            const tokenDisplay = document.getElementById('token-display');
+            tokenDisplay.textContent = 'Loading...';
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: searchParams,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Login failed');
+                }
+
+                const data = await response.json();
+                tokenDisplay.textContent = 'Success! Token: ' + data.access_token;
+            } catch (error) {
+                tokenDisplay.textContent = 'Error: ' + error.message;
+                console.error('There was an error!', error);
+            }
+        });
+    </script>
+
+</body>
+</html>

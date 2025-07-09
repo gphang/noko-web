@@ -2,22 +2,24 @@ from pydantic import BaseModel
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from jwt.exceptions import InvalidTokenError
-from passlib.context import CryptContext
+# from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import Depends, FastAPI, HTTPException, status
 import jwt
+import bcrypt
 
 
 SECRET_KEY = "7b6cc292ed308c3ec4a1019040d65587810bc94ff207c898d398ec5facac1422"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# password: "test"
 fake_users_db = {
     "johndoe@example.com": {
         "username": "johndoe",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
+        "hashed_password": "$2b$12$ybWsNv2MuLswDeaRLltHqO.YM7LFI4g6.KlSd0iJ5xWfwMdiDfh4q",
         "disabled": False,
     }
 }
@@ -38,16 +40,27 @@ class UserInDB(User):
     hashed_password: str
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 
-def verify_password(plain_password, hashed_password):
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+
+
+
+
+# def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def get_password_hash(password):
+# def get_password_hash(password):
     return pwd_context.hash(password)
 
 

@@ -1,10 +1,31 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Request
 from datetime import timedelta
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 from utils.auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, fake_users_db, Token
 
+# TODO: change to react, using simple html for testing login
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+# TODO: change this to react code
+templates = Jinja2Templates(directory="templates")
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
 
 @app.post("/login")
 async def login_for_access_token(
