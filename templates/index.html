@@ -53,7 +53,10 @@
                 }
 
                 const data = await response.json();
-                tokenDisplay.textContent = 'Success! Token: ' + data.access_token;
+            
+                localStorage.setItem('accessToken', data.access_token);
+                window.location.href = '/storybook'; // TEMP: redirect to storybook feat
+            
             } catch (error) {
                 tokenDisplay.textContent = 'Error: ' + error.message;
                 console.error('There was an error!', error);

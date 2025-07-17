@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from jwt.exceptions import InvalidTokenError
@@ -9,10 +9,15 @@ import jwt
 import bcrypt
 
 
+# --- config ---
 SECRET_KEY = "7b6cc292ed308c3ec4a1019040d65587810bc94ff207c898d398ec5facac1422"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+
+# --- mock db ---
 # password: "test"
 fake_users_db = {
     "johndoe@example.com": {
@@ -24,6 +29,8 @@ fake_users_db = {
     }
 }
 
+
+# --- pydantic models ---
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -34,26 +41,21 @@ class TokenData(BaseModel):
 
 
 class User(BaseModel):
-    email: str | None=None
+    email: str
+    full_name: str | None = None
+    disabled: bool | None = None
+
 
 class UserInDB(User):
     hashed_password: str
 
 
-# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
+
 def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-
-
-
 
 
 # def verify_password(plain_password, hashed_password):
@@ -73,9 +75,9 @@ def get_user(db, email: str):
 def authenticate_user(fake_db, email: str, password: str):
     user = get_user(fake_db, email)
     if not user:
-        return False
+        return None
     if not verify_password(password, user.hashed_password):
-        return False
+        return None
     return user
 
 
@@ -98,13 +100,17 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if username is None:
+        
+        email: str = payload.get("sub")
+        if email is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        
+        token_data = TokenData(email=email)
+    
     except InvalidTokenError:
         raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
+    
+    user = get_user(fake_users_db, email=token_data.email)
     if user is None:
         raise credentials_exception
     return user
