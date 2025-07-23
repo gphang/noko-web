@@ -10,3 +10,6 @@ bcrypt
 
 boto3
 python-dotenv
+
+# for lambda
+mangum

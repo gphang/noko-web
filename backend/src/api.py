@@ -11,6 +11,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.database import get_book_from_db
 
+
+# for lambda
+import os
+from fastapi.templating import Jinja2Templates
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+
 app = FastAPI()
 
 
