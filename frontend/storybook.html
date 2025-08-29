@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storybook Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; touch-action: manipulation; }
+        /* This class is added by the script to create a smooth fade effect */
+        #page-content { transition: opacity 0.2s ease-in-out; }
+        #page-content.loading { opacity: 0; }
+    </style>
+</head>
+<body class="bg-white flex flex-col items-center min-h-screen">
+
+    <header class="w-full flex justify-between items-center py-4 px-4 max-w-md">
+        <h1 class="font-bold text-lg">noko</h1>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-1">
+                <span class="text-xs">0.25x</span>
+                <input type="range" min="0.25" max="1" step="0.25" value="1" class="w-20">
+                <span class="text-xs">1x</span>
+            </div>
+            <button class="p-2 rounded-full hover:bg-gray-100">&#9654;</button>
+            <button class="p-2 rounded-full hover:bg-gray-100">&#10073;&#10073;</button>
+            <button class="p-2 rounded-full hover:bg-gray-100">👤</button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-md flex-1 flex flex-col justify-center px-2">
+        
+        <div id="book-interface" class="hidden w-full">
+            <h2 id="book-title" class="text-2xl font-bold text-center mb-4 text-gray-800"></h2>
+            
+            <div id="page-content">
+                <div class="bg-white rounded-2xl shadow-lg p-4 mb-4 w-full">
+                    <img id="page-image" src="" alt="Story illustration" class="w-full object-contain rounded-lg">
+                </div>
+                <div class="bg-gray-100 rounded-2xl shadow-inner p-4 w-full text-center min-h-[80px] flex items-center justify-center">
+                    <p id="page-text" class="text-lg leading-relaxed"></p>
+                </div>
+            </div>
+
+            <div id="page-indicator" class="text-sm font-semibold text-gray-500 text-center my-4"></div>
+
+            <div class="flex justify-center items-center gap-6">
+                <button id="prev-btn" class="p-3 rounded-full bg-black text-white shadow-md disabled:bg-gray-300">&larr;</button>
+                <button id="next-btn" class="p-3 rounded-full bg-black text-white shadow-md disabled:bg-gray-300">&rarr;</button>
+            </div>
+            
+            <div id="quiz-container" class="text-center mt-8 hidden">
+                <a id="quiz-link" href="#" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform duration-300 inline-block">
+                    Take the Quiz!
+                </a>
+            </div>
+        </div>
+        
+        <div id="loading-indicator" class="text-center">
+            <p class="text-xl text-gray-600">Loading your story...</p>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-4 mt-8 w-full">
+        <div class="flex justify-center">
+            <a href="index.html" class="flex items-center bg-gray-700 px-6 py-3 rounded-full font-semibold shadow-lg hover:bg-gray-600 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M4 10v10a1 1 0 001 1h14a1 1 0 001-1V10" />
+                </svg>
+                Home
+            </a>
+        </div>
+    </footer>
+
+    <script>
+        let bookData = null;
+        let currentPageIndex = 0;
+        let bookId = '';
+        const bookInterface = document.getElementById('book-interface');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const bookTitleEl = document.getElementById('book-title');
+        const pageImageEl = document.getElementById('page-image');
+        const pageTextEl = document.getElementById('page-text');
+        const pageIndicatorEl = document.getElementById('page-indicator');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const pageContentEl = document.getElementById('page-content');
+        const quizContainer = document.getElementById('quiz-container');
+        const quizLink = document.getElementById('quiz-link');
+
+        async function fetchBookFromAPI(bookIdToFetch) {
+            const apiUrl = `https://aiz4f5rq2m.execute-api.us-east-1.amazonaws.com/books/${bookIdToFetch}`;
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Failed to fetch book');
+                return await response.json();
+            } catch (error) {
+                console.error("Could not fetch book:", error);
+                loadingIndicator.textContent = "Oops! We couldn't load your book.";
+            }
+        }
+
+        function renderPage(index) {
+            if (!bookData || !bookData.pages[index]) return;
+            pageContentEl.classList.add('loading');
+            
+            setTimeout(() => {
+                const page = bookData.pages[index];
+                pageImageEl.src = page.image;
+                pageTextEl.textContent = page.text;
+                // pageIndicatorEl.textContent = `Page ${page.page_number} of ${bookData.pages.length}`;
+                prevBtn.disabled = (index === 0);
+                nextBtn.disabled = (index === bookData.pages.length - 1);
+                
+                if (index === bookData.pages.length - 1) {
+                    quizContainer.classList.remove('hidden');
+                } else {
+                    quizContainer.classList.add('hidden');
+                }
+                
+                pageContentEl.classList.remove('loading');
+            }, 200);
+        }
+
+        async function initializeBook() {
+            const urlParams = new URLSearchParams(window.location.search);
+            bookId = urlParams.get('book') || 'jack-and-jill';
+            quizLink.href = `./quiz.html?book=${bookId}`;
+            
+            bookData = await fetchBookFromAPI(bookId); 
+            
+            if (bookData) {
+                loadingIndicator.classList.add('hidden');
+                bookInterface.classList.remove('hidden');
+                bookTitleEl.textContent = bookData.title;
+                currentPageIndex = 0;
+                renderPage(currentPageIndex);
+            }
+        }
+
+        prevBtn.addEventListener('click', () => { if (currentPageIndex > 0) renderPage(--currentPageIndex); });
+        nextBtn.addEventListener('click', () => { if (currentPageIndex < bookData.pages.length - 1) renderPage(++currentPageIndex); });
+
+        initializeBook();
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storybook Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Baloo+2:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; touch-action: manipulation; }
+        .book-title { font-family: 'Baloo 2', cursive; }
+        .page-content { transition: opacity 0.4s ease-in-out; }
+        .page-content.loading { opacity: 0; }
+    </style>
+</head>
+<body class="bg-amber-50 flex flex-col items-center justify-center min-h-screen p-4">
+    <header class="w-full max-w-4xl mx-auto mb-4">
+        <nav class="flex justify-between items-center">
+            <a href="./library.html" class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-5 rounded-full shadow-md transform hover:scale-105 transition-transform duration-300">&larr; Back to Library</a>
+            <a href="./index.html" class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-5 rounded-full shadow-md transform hover:scale-105 transition-transform duration-300">Back to Home</a>
+        </nav>
+    </header>
+    <div id="storybook-container" class="w-full max-w-4xl mx-auto">
+        <div id="book-interface" class="hidden">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8">
+                <h2 id="book-title" class="text-3xl md:text-4xl book-title text-center text-gray-800 mb-6"></h2>
+                <div id="page-content" class="page-content">
+                    <div class="aspect-w-16 aspect-h-9 mb-6">
+                         <img id="page-image" src="" alt="Story illustration" class="w-full h-full object-contain rounded-lg bg-gray-100">
+                    </div>
+                    <p id="page-text" class="text-xl md:text-2xl text-center text-gray-700 leading-relaxed min-h-[100px]"></p>
+                </div>
+            </div>
+            <div class="flex justify-between items-center mt-6">
+                <button id="prev-btn" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-transform duration-300 disabled:bg-gray-300">Previous</button>
+                <div id="page-indicator" class="text-lg font-semibold text-amber-700"></div>
+                <button id="next-btn" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-transform duration-300 disabled:bg-gray-300 disabled:hover:scale-100">Next</button>
+            </div>
+            <div id="quiz-container" class="text-center mt-8 hidden">
+                <a id="quiz-link" href="#" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-full shadow-lg transform hover:scale-105 transition-transform duration-300 inline-block text-xl">
+                    Go to Quiz! &rarr;
+                </a>
+            </div>
+        </div>
+        <div id="loading-indicator" class="text-center">
+            <p class="text-2xl text-amber-700 animate-pulse">Loading your book...</p>
+        </div>
+    </div>
+    <script>
+        let bookData = null;
+        let currentPageIndex = 0;
+        let bookId = '';
+        const bookInterface = document.getElementById('book-interface');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const bookTitleEl = document.getElementById('book-title');
+        const pageImageEl = document.getElementById('page-image');
+        const pageTextEl = document.getElementById('page-text');
+        const pageIndicatorEl = document.getElementById('page-indicator');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const pageContentEl = document.getElementById('page-content');
+        const quizContainer = document.getElementById('quiz-container');
+        const quizLink = document.getElementById('quiz-link');
+
+        async function fetchBookFromAPI(bookIdToFetch) {
+            const apiUrl = `https://aiz4f5rq2m.execute-api.us-east-1.amazonaws.com/books/${bookIdToFetch}`;
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Failed to fetch book');
+                return await response.json();
+            } catch (error) {
+                console.error("Could not fetch book:", error);
+                loadingIndicator.textContent = "Oops! We couldn't load your book.";
+            }
+        }
+
+        function renderPage(index) {
+            if (!bookData || !bookData.pages[index]) return;
+            pageContentEl.classList.add('loading');
+            
+            setTimeout(() => {
+                const page = bookData.pages[index];
+                pageImageEl.src = page.image;
+                pageTextEl.textContent = page.text;
+                pageIndicatorEl.textContent = `Page ${page.page_number} of ${bookData.pages.length}`;
+                prevBtn.disabled = (index === 0);
+                nextBtn.disabled = (index === bookData.pages.length - 1);
+                
+                if (index === bookData.pages.length - 1) {
+                    quizContainer.classList.remove('hidden');
+                } else {
+                    quizContainer.classList.add('hidden');
+                }
+                
+                pageContentEl.classList.remove('loading');
+            }, 200);
+        }
+
+        async function initializeBook() {
+            const urlParams = new URLSearchParams(window.location.search);
+            bookId = urlParams.get('book') || 'jack-and-jill';
+            quizLink.href = `./quiz.html?book=${bookId}`;
+            
+            bookData = await fetchBookFromAPI(bookId); 
+            
+            if (bookData) {
+                loadingIndicator.classList.add('hidden');
+                bookInterface.classList.remove('hidden');
+                bookTitleEl.textContent = bookData.title;
+                currentPageIndex = 0;
+                renderPage(currentPageIndex);
+            }
+        }
+
+        prevBtn.addEventListener('click', () => { if (currentPageIndex > 0) renderPage(--currentPageIndex); });
+        nextBtn.addEventListener('click', () => { if (currentPageIndex < bookData.pages.length - 1) renderPage(++currentPageIndex); });
+
+        initializeBook();
+    </script>
+</body>
+</html> -->

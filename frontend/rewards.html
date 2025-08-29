@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Garden</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .page-title { font-family: 'Baloo 2', cursive; }
+    .garden {
+      background: url('images/garden_background.png') bottom center no-repeat;
+      background-size: cover;
+    }
+  </style>
+</head>
+<body class="bg-amber-50 flex flex-col min-h-screen">
+
+  <!-- Centered Title -->
+  <header class="py-6">
+    <h1 class="page-title text-4xl md:text-5xl text-center">
+      My Garden
+    </h1>
+  </header>
+
+  <!-- Main Garden Section -->
+  <main class="flex-1 relative garden">
+    <div id="plants-container" class="absolute inset-0">
+      <!-- Plants will be rendered here -->
+    </div>
+    <p id="empty-message" class="text-center text-gray-600 text-lg mt-10 hidden">
+      No plants yet! Finish books to grow your garden 🌱
+    </p>
+  </main>
+
+  <!-- Bottom Navigation -->
+  <footer class="bg-gray-800 text-white py-4">
+    <div class="flex justify-center">
+      <a href="./index.html"
+        class="flex items-center bg-gray-700 px-6 py-3 rounded-full font-semibold shadow-lg hover:bg-gray-600 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6" />
+        </svg>
+        Home
+      </a>
+    </div>
+  </footer>
+</body>
+
+  <script>
+    // Example earned plants
+    const earnedPlants = [
+      { img: "./images/plant1.jpeg", size: "w-120", position: "left-[-30%] bottom-0" },
+    //   { img: "./images/plant2.jpeg", size: "w-120", position: "left-[0%] bottom-14" },
+      { img: "plants/humpty-plant.png", size: "w-28", position: "left-[75%] bottom-10" }
+    ];
+
+    const container = document.getElementById('plants-container');
+    const emptyMessage = document.getElementById('empty-message');
+
+    function renderPlants() {
+      if (earnedPlants.length === 0) {
+        emptyMessage.classList.remove('hidden');
+        return;
+      }
+
+      earnedPlants.forEach(plant => {
+        const flower = document.createElement('img');
+        flower.src = plant.img;
+        flower.alt = "Plant";
+        flower.className = `${plant.size} h-auto object-contain absolute ${plant.position}`;
+        container.appendChild(flower);
+      });
+    }
+
+    renderPlants();
+  </script>
+
+</body>
+</html>
