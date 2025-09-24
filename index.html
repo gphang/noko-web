@@ -16,40 +16,32 @@
 </head>
 
 <body class="bg-white flex flex-col min-h-screen">
-  <!-- Top Greeting Section -->
   <header class="flex justify-between items-start px-6 pt-6">
-    <h1 class="text-5xl font-bold page-title mt-20">Hello</h1>
+    <h1 id="greeting" class="text-5xl font-bold page-title mt-20">Hello</h1>
     <img src="images/tapir.png" alt="Character" class="w-32 h-32 object-contain" />
   </header>
 
-  <!-- Main Content Cards -->
   <main class="flex-grow px-6 py-6 space-y-6">
-    <!-- Currently Reading -->
-    <a href="storybook.html?book=jack-and-jill"
+    <a id="currently-reading-link" href="#"
       class="block bg-gray-200 rounded-xl p-8 flex justify-between items-center shadow hover:shadow-lg transition">
       <span class="text-xl font-semibold">Currently Reading</span>
       <div class="flex items-center space-x-4">
-        <!-- Circle progress placeholder -->
         <div class="w-12 h-12 border-4 border-black rounded-full"></div>
         <span class="text-2xl">→</span>
       </div>
     </a>
 
-    <!-- My Library -->
     <a href="library.html"
       class="block bg-gray-200 rounded-xl p-8 shadow hover:shadow-lg transition">
       <span class="text-xl font-semibold">My Library</span>
     </a>
 
-    <!-- Two Column Section -->
     <div class="grid grid-cols-2 gap-6">
-      <!-- Tasks -->
-      <a href="library.html"
+      <a href="explore.html"
         class="block bg-gray-200 rounded-xl p-8 shadow hover:shadow-lg transition">
         <span class="text-lg font-medium">Explore</span>
       </a>
 
-      <!-- Rewards -->
       <a href="rewards.html"
         class="block bg-gray-200 rounded-xl p-8 shadow hover:shadow-lg transition">
         <span class="text-lg font-medium">Rewards</span>
@@ -57,7 +49,6 @@
     </div>
   </main>
 
-  <!-- Bottom Navigation -->
   <footer class="bg-gray-800 text-white py-4">
     <div class="flex justify-center">
       <a href="index.html"
@@ -71,63 +62,42 @@
       </a>
     </div>
   </footer>
-</body>
 
-</html>
+  <script>
+    const userId = 'testuser';
+    const apiUrl = `https://aiz4f5rq2m.execute-api.us-east-1.amazonaws.com/books/${userId}?action=getUser`;
 
+    // FETCH user data & update page
+    async function loadHomepageData() {
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const userData = await response.json();
 
+        const currentlyReadingLink = document.getElementById('currently-reading-link');
 
+        if (userData.currently_reading && currentlyReadingLink) {
+          currentlyReadingLink.href = `storybook.html?book=${userData.currently_reading}`;
+        }
+        
+        const greeting = document.getElementById('greeting');
+        if (greeting) {
+            greeting.textContent = `Hello, ${userId}`;
+        }
 
-<!-- <!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Noko Homepage</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700&display=swap" rel="stylesheet">
-
-  <style>
-    .page-title {
-      font-family: 'Baloo 2', cursive;
+      } catch (error) {
+        console.error('Failed to load user data:', error);
+        // default if error
+        const currentlyReadingLink = document.getElementById('currently-reading-link');
+        if (currentlyReadingLink) {
+            currentlyReadingLink.href = 'storybook.html?book=jack-and-jill';
+        }
+      }
     }
-  </style>
-</head>
 
-<body class="bg-amber-50 flex items-center justify-center min-h-screen">
-  <div class="text-center p-8">
-    <h1 class="text-5xl md:text-7xl page-title text-amber-700 mb-8">
-      Welcome to Noko
-    </h1>
-
-    <p class="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-      Discover a world of wonderful stories and adventures waiting for you.
-    </p>
-
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-xl mx-auto">
-      <a href="./library.html"
-        class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 px-10 rounded-full shadow-lg transform hover:scale-105 transition-transform duration-300 text-2xl">
-        📚 Go to the Library
-      </a>
-
-      <a href="./currently-reading.html"
-        class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 px-10 rounded-full shadow-lg transform hover:scale-105 transition-transform duration-300 text-2xl">
-        📖 Currently Reading
-      </a>
-
-      <a href="./tasks.html"
-        class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 px-10 rounded-full shadow-lg transform hover:scale-105 transition-transform duration-300 text-2xl">
-        ✅ My Tasks
-      </a>
-
-      <a href="./rewards.html"
-        class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-10 rounded-full shadow-lg transform hover:scale-105 transition-transform duration-300 text-2xl">
-        🎉 Rewards
-      </a>
-    </div>
-  </div>
+    document.addEventListener('DOMContentLoaded', loadHomepageData);
+  </script>
 </body>
-
-</html> -->
+</html>
