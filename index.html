@@ -65,6 +65,7 @@
 
   <script>
     const userId = 'testuser';
+    localStorage.setItem('noko-userId', userId);
     const apiUrl = `https://aiz4f5rq2m.execute-api.us-east-1.amazonaws.com/books/${userId}?action=getUser`;
 
     // FETCH user data & update page
@@ -72,7 +73,7 @@
       try {
         const response = await fetch(apiUrl);
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error('Network response not ok');
         }
         const userData = await response.json();
 
@@ -80,6 +81,9 @@
 
         if (userData.currently_reading && currentlyReadingLink) {
           currentlyReadingLink.href = `storybook.html?book=${userData.currently_reading}`;
+          currentlyReadingLink.style.display = 'flex';
+        } else if (currentlyReadingLink) {
+          currentlyReadingLink.style.display = 'none';
         }
         
         const greeting = document.getElementById('greeting');
@@ -89,10 +93,9 @@
 
       } catch (error) {
         console.error('Failed to load user data:', error);
-        // default if error
         const currentlyReadingLink = document.getElementById('currently-reading-link');
         if (currentlyReadingLink) {
-            currentlyReadingLink.href = 'storybook.html?book=jack-and-jill';
+            currentlyReadingLink.style.display = 'none'; // hide on error
         }
       }
     }

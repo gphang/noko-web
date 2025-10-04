@@ -83,6 +83,10 @@
         let bookData = null;
         let currentPageIndex = 0;
         let bookId = '';
+
+        let userId = null;
+        const API_BASE_URL = 'https://aiz4f5rq2m.execute-api.us-east-1.amazonaws.com';
+
         let isPlaying = false;
         let speechSynthesis = window.speechSynthesis;
         let currentUtterance = null;
@@ -230,6 +234,7 @@
                 
                 if (index === bookData.pages.length - 1) {
                     quizContainer.classList.remove('hidden');
+                    updateBookStatus('completed', index);
                 } else {
                     quizContainer.classList.add('hidden');
                 }
@@ -239,6 +244,8 @@
         }
 
         async function initializeBook() {
+            userId = localStorage.getItem('noko-userId'); 
+            
             const urlParams = new URLSearchParams(window.location.search);
             bookId = urlParams.get('book') || 'jack-and-jill';
             quizLink.href = `quiz.html?book=${bookId}`;
@@ -251,6 +258,42 @@
                 bookTitleEl.textContent = bookData.title;
                 currentPageIndex = 0;
                 renderPage(currentPageIndex);
+
+                updateBookStatus('in progress', 0);
+            }
+        }
+
+        async function updateBookStatus(status, pageIndex) {
+            if (!userId || !bookId) {
+                console.log('Cannot update status: userId or bookId missing');
+                return;
+            }
+        
+            const apiUrl = `${API_BASE_URL}/books/update?action=updateStatus`;
+        
+            console.log(`Updating status for ${bookId} to "${status}" on page ${pageIndex}`);
+        
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: userId,
+                        bookId: bookId,
+                        status: status,
+                        currentPage: pageIndex
+                    })
+                });
+        
+                if (!response.ok) {
+                    throw new Error('API request to update status failed');
+                }
+                
+                const result = await response.json();
+                console.log('Status updated successfully:', result);
+        
+            } catch (error) {
+                console.error('Could not update book status:', error);
             }
 
             // Load voices

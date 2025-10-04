@@ -1,5 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
 
 // --- CONFIGURATION ---
@@ -37,8 +37,10 @@ export const handler = async (event) => {
     const action = event.queryStringParameters?.action || 'getBook';
     const entityId = event.pathParameters?.bookId; // ID: bookId or userId
 
+    const body = event.body ? JSON.parse(event.body) : null;
+
     if (!entityId) {
-        return { statusCode: 400, body: JSON.stringify({ error: 'Missing ID (bookId or userId) in URL path.' }) };
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing ID (bookId or userId) in URL path' }) };
     }
 
     try {
@@ -51,15 +53,17 @@ export const handler = async (event) => {
                 return await getUserData(entityId, ddbDocClient);
             case 'getExplore':
                 return await getExploreBooks(entityId, ddbDocClient);
+            case 'updateStatus':
+                return await updateUserBookStatus(body, ddbDocClient);
             default:
-                return { statusCode: 400, body: JSON.stringify({ error: 'Invalid action specified.' }) };
+                return { statusCode: 400, body: JSON.stringify({ error: 'Invalid action specified' }) };
         }
     } catch (err) {
         console.error(err);
         return { 
             statusCode: 500, 
             headers: { 'Access-Control-Allow-Origin': '*' }, 
-            body: JSON.stringify({ error: 'Could not process the request', details: err.message }) 
+            body: JSON.stringify({ error: 'Could not process request', details: err.message }) 
         };
     }
 };
@@ -126,5 +130,53 @@ const getExploreBooks = async (userId, ddbDocClient) => {
         statusCode: 200,
         headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
         body: JSON.stringify(exploreBooks),
+    };
+};
+
+// --- UPDATE STATUS ---
+const updateUserBookStatus = async (requestBody, ddbDocClient) => {
+    const { userId, bookId, status, currentPage } = requestBody;
+
+    if (!userId || !bookId || !status) {
+        return { 
+            statusCode: 400, 
+            body: JSON.stringify({ error: 'Missing required fields: userId, bookId, status' }) 
+        };
+    }
+
+    const params = {
+        TableName: usersTableName,
+        Key: { userId: userId },
+        ExpressionAttributeNames: {
+            "#bookId": bookId
+        },
+        ExpressionAttributeValues: {
+            ":statusObject": {
+                status: status,
+                lastPage: currentPage !== undefined ? currentPage : 0 
+            }
+        },
+        ReturnValues: "UPDATED_NEW"
+    };
+
+    if (status.toLowerCase() === 'in progress') {
+        // 1. if reading starts, SET currently_reading field
+        params.UpdateExpression = "SET saved_books.#bookId = :statusObject, currently_reading = :bookId";
+        params.ExpressionAttributeValues[":bookId"] = bookId;
+    } else if (status.toLowerCase() === 'completed') {
+        // 2. if reading finishes, REMOVE currently_reading field
+        params.UpdateExpression = "SET saved_books.#bookId = :statusObject REMOVE currently_reading";
+    } else {
+        // 3. for any other status, update map
+        params.UpdateExpression = "SET saved_books.#bookId = :statusObject";
+    }
+    
+    const command = new UpdateCommand(params);
+    
+    const result = await ddbDocClient.send(command);
+    return {
+        statusCode: 200,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({ message: 'Status updated successfully', data: result.Attributes }),
     };
 };
