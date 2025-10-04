@@ -105,7 +105,7 @@
         const speedSlider = document.getElementById('speed-slider');
 
         // Google Cloud TTS API configuration
-        const TTS_API_ENDPOINT = 'https://noko-web.vercel.app/api/tts';
+        const TTS_API_ENDPOINT = '/api/tts';
 
         async function fetchBookFromAPI(bookIdToFetch) {
             const apiUrl = `https://aiz4f5rq2m.execute-api.us-east-1.amazonaws.com/books/${bookIdToFetch}`;
@@ -119,20 +119,19 @@
             }
         }
 
+
         async function textToSpeech(text) {
-            if (!GOOGLE_TTS_API_KEY || GOOGLE_TTS_API_KEY === 'YOUR_API_KEY_HERE') {
-                console.error('Please set your Google TTS API key');
-                alert('Please configure your Google TTS API key');
+            if (!TTS_API_ENDPOINT || TTS_API_ENDPOINT === 'YOUR_BACKEND_URL/api/tts') {
+                console.error('Please configure your backend TTS API endpoint');
+                alert('Please configure your backend API endpoint');
                 return null;
             }
-
-            const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_TTS_API_KEY}`;
             
             const requestBody = {
-                input: { text: text },
+                input: { ssml: text },
                 voice: {
                     languageCode: 'en-US',
-                    name: 'en-US-Neural2-F', // Female voice, great for children's stories
+                    name: 'en-US-Neural2-F',
                     ssmlGender: 'FEMALE'
                 },
                 audioConfig: {
@@ -140,11 +139,12 @@
                     speakingRate: playbackSpeed,
                     pitch: 0.0,
                     volumeGainDb: 0.0
-                }
+                },
+                enableTimePointing: ['SSML_MARK']
             };
 
             try {
-                const response = await fetch(url, {
+                const response = await fetch(TTS_API_ENDPOINT, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -157,13 +157,17 @@
                 }
 
                 const data = await response.json();
-                return data.audioContent; // Base64 encoded audio
+                return {
+                    audioContent: data.audioContent,
+                    timepoints: data.timepoints || []
+                };
             } catch (error) {
                 console.error('Error with TTS:', error);
-                alert('Error generating speech. Please check your API key and internet connection.');
+                alert('Error generating speech. Please check your backend API.');
                 return null;
             }
         }
+        
 
         function stopAudio() {
             if (currentAudio) {
