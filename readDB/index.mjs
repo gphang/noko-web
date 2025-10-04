@@ -110,7 +110,7 @@ const getExploreBooks = async (userId, ddbDocClient) => {
     // 1. GET user saved_books
     const getUserCommand = new GetCommand({ TableName: usersTableName, Key: { userId: userId } });
     const { Item: userData } = await ddbDocClient.send(getUserCommand);
-    const savedBookIds = new Set(userData ? userData.saved_books : []);
+    const savedBookIds = new Set(userData && userData.saved_books ? Object.keys(userData.saved_books) : []);
 
     // 2. GET all noko-library books (quick scan)
     const scanAllBooksCommand = new ScanCommand({ 
