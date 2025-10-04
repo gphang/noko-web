@@ -18,7 +18,7 @@
 
   <!-- Header -->
   <header class="px-6 pt-6">
-    <h1 class="text-5xl font-bold page-title">Library</h1>
+    <h1 class="text-5xl font-bold page-title">My Library</h1>
   </header>
 
   <!-- Main Content -->
@@ -41,7 +41,7 @@
 
     <!-- Library Grid -->
     <div class="grid grid-cols-2 gap-6">
-      <div class="w-full h-40 bg-gray-200 rounded-md flex items-center justify-center">
+      <!-- <div class="w-full h-40 bg-gray-200 rounded-md flex items-center justify-center">
         <span class="text-gray-500 text-sm">Coming Soon</span>
       </div>
       <div class="w-full h-40 bg-gray-200 rounded-md flex items-center justify-center">
@@ -52,7 +52,7 @@
       </div>
       <div class="w-full h-40 bg-gray-200 rounded-md flex items-center justify-center">
         <span class="text-gray-500 text-sm">Coming Soon</span>
-      </div>
+      </div> -->
     </div>
   </main>
 
@@ -70,7 +70,65 @@
       </a>
     </div>
   </footer>
-</body>
+
+
+  <script>
+    const userId = "testuser";
+    const apiUrl = `https://aiz4f5rq2m.execute-api.us-east-1.amazonaws.com/books/${userId}?action=getUser`;
+
+    // get all saved books id
+    async function fetchUserBooks() {
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Failed to fetch user books");
+        const data = await response.json();
+
+        // Convert saved_books object into an array of { bookId, ...bookData }
+        const savedBooks = Object.entries(data.saved_books || {}).map(([bookId, bookData]) => ({
+          bookId,
+          ...bookData
+        }));
+
+        return savedBooks;
+      } catch (error) {
+        console.error("Error fetching user books:", error);
+        return [];
+      }
+    }
+
+    // populate library with saved books
+    async function populateLibraryGrid(savedBooks) {
+      const gridContainer = document.getElementById("library-grid");
+      gridContainer.innerHTML = ""; // Clear any existing content
+
+      if (!savedBooks || savedBooks.length === 0) {
+        gridContainer.innerHTML = `<p class="text-gray-500 col-span-2">No saved books found.</p>`;
+        return;
+      }
+
+      for (const book of savedBooks) {
+        const bookHtml = `
+          <a href="storybook.html?book=${book.bookId}"
+            class="flex items-center bg-white p-2 rounded-lg shadow hover:shadow-md transition">
+            <img src="${book.coverUrl}" 
+                alt="Cover of ${book.title}" 
+                class="w-20 h-28 object-cover rounded-md shadow" />
+            <div class="ml-4">
+              <h3 class="font-semibold text-gray-900 text-lg">${book.title}</h3>
+              <p class="text-sm text-gray-600">${book.author || "Unknown Author"}</p>
+            </div>
+          </a>`;
+        gridContainer.insertAdjacentHTML("beforeend", bookHtml);
+      }
+    }
+
+    // Run on page load
+    (async function init() {
+      const savedBooks = await fetchUserBooks();
+      await populateLibraryGrid(savedBooks);
+    })();
+
+  </script>
 
 </body>
 
