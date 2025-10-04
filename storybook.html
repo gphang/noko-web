@@ -120,7 +120,7 @@
         }
 
         async function textToSpeech(text) {
-            if (!TTS_API_ENDPOINT || TTS_API_ENDPOINT === 'YOUR_BACKEND_URL/api/tts') {
+            if (!TTS_API_ENDPOINT || TTS_API_ENDPOINT === 'https://noko-web.vercel.app/api/tts') {
                 console.error('Please configure your backend TTS API endpoint');
                 alert('Please configure your backend API endpoint');
                 return null;
